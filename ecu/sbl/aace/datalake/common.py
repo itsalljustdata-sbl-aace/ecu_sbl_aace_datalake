@@ -18,9 +18,57 @@ import time
 from uuid import uuid4
 
 
-APPNAME_DEFAULT : str = "AACE.Datalake.Common"
+APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
 
 spark : SparkSession
+
+
+__all__ : list = [
+                  "addIndexCol",
+                  "aliasColumns",
+                  "are_strings_similar",
+                  "castColumns",
+                  "castColumnsToInt",
+                  "cleanString",
+                  "createExtraRow",
+                  "custom_initcap",
+                  "dfShape",
+                  "dropTable",
+                  "escapeName",
+                  "extract_actual_error",
+                  "firstCharIsNumeric",
+                  "fixDodgyAssessLevel",
+                  "fixDodgyStatuses",
+                  "fixDodgyThing",
+                  "fixUpName",
+                  "garbageCLO",
+                  "getColsFromTable",
+                  "getDistinctValsFromDataRowsInt",
+                  "getJoinCondition",
+                  "getLakehouseId",
+                  "getSQL",
+                  "getTables",
+                  "getTempTableName",
+                  "getWorkspace",
+                  "insertColumnAndAlias",
+                  "insertValueIntoList",
+                  "lakehouse_properties",
+                  "mountItUp",
+                  "readTable",
+                  "rename_columns_strip_prefix",
+                  "rename_columns_with_prefix",
+                  "replaceValueInList",
+                  "selectTable",
+                  "setDFTextWhenNull",
+                  "setNullToZero",
+                  "simpleMap",
+                  "sparkSession",
+                  "sqlQueryDataFrame",
+                  "tablePath",
+                  "writeTable",
+                 ] + [spark, APPNAME_DEFAULT]
+
+
 
 def sparkSession (appName : str = None):
     if not appName:
