@@ -26,5 +26,11 @@ jobs:
       - name: Build package
         run: |
           python -m build 
+      - name: List dist directory
+        run: |
+          echo "Listing dist directory"
+          echo "====================="
+          echo $PWD
+          ls -alR dist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
