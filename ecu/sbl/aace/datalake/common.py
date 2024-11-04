@@ -66,7 +66,10 @@ __all__ : list = [
                   "sqlQueryDataFrame",
                   "tablePath",
                   "writeTable",
-                 ] + [spark, APPNAME_DEFAULT]
+                 ]  +   [
+                        "spark", 
+                        "APPNAME_DEFAULT",
+                        ]
 
 
 
