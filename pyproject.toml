@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 # $ pip install ecu.sbl.aace.datalake
 name = "ecu_sbl_aace_datalake"  # REQUIRED, is the only field that cannot be marked as dynamic.
-description = "Generally useful utilities"
+description = "Supporting utilities for the ECU SBL AACE Datalake project"  # REQUIRED
 readme = "README.md"
 requires-python = ">=3.11.9"
-license = {text = "TBD"}
+license = {text = "MIT"}
 keywords = ["utilities",]
 authors = [
-  {name = "Jonathan Mills", email = "jonathan.mills@itsalljustdata.com" }
+  {name = "Jonathan Mills", email = "support.sbl@itsalljustdata.com" }
 ]
 maintainers = [
-  {name = "Jonathan Mills", email = "jonathan.mills@itsalljustdata.com" }
+  {name = "Jonathan Mills", email = "support.sbl@itsalljustdata.com" }
 ]
 classifiers = [
   # How mature is this project? Common values are
@@ -52,5 +52,4 @@ test = []
 include-package-data = true
 
 [tool.setuptools_scm]
-# root = "../.."
 version_file = "ecu/sbl/aace/datalake/_version.py"
