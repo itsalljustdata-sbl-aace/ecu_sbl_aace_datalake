@@ -2,33 +2,6 @@
 # coding: utf-8
 
 
-
-# Standard library imports
-from pathlib import Path
-import re
-import difflib
-from datetime import datetime
-import time
-from uuid import uuid4
-
-# Third-party imports
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql import types as T
-from py4j.protocol import Py4JJavaError
-from delta.tables import DeltaTable
-
-# Local imports
-from   notebookutils import mssparkutils
-from   notebookutils import lakehouse  as nb_lakehouse  
-import sempy.fabric as fabric
-
-
-APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
-
-spark : SparkSession
-
-
 __all__ : list = [
                   "addIndexCol",
                   "aliasColumns",
@@ -78,6 +51,31 @@ __all__ : list = [
                         ]
 
 
+
+# Standard library imports
+from pathlib import Path
+import re
+import difflib
+from datetime import datetime
+import time
+from uuid import uuid4
+
+# Third-party imports
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
+from py4j.protocol import Py4JJavaError
+from delta.tables import DeltaTable
+
+# Local imports
+from   notebookutils import mssparkutils
+from   notebookutils import lakehouse  as nb_lakehouse  
+import sempy.fabric as fabric
+
+
+APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
+
+spark : SparkSession
 
 def sparkSession (appName : str = None):
     if not appName:
