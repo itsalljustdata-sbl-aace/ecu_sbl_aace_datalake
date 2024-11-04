@@ -69,7 +69,6 @@ from delta.tables import DeltaTable
 
 # Local imports
 from   notebookutils import mssparkutils
-from   notebookutils import lakehouse  as nb_lakehouse  
 import sempy.fabric as fabric
 
 
@@ -88,7 +87,7 @@ def sparkSession (appName : str = None):
                 .getOrCreate()
             )
     
-sparkSession (appName  = APPNAME_DEFAULT)
+sparkSession ()
 
 def cleanString(input_string):
     # Use regex to replace all non-alphanumeric characters except underscores
@@ -199,7 +198,7 @@ def getLakehouseId (lakehouse_name : str, workspace_id : str = None) -> str:
         # Get the workspace ID
         workspace_id = fabric.get_workspace_id()
 
-    thisLakehouse = nb_lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
+    thisLakehouse = mssparkutils.lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
     return thisLakehouse.get('id',None)
 
 
@@ -255,7 +254,7 @@ def lakehouse_properties (
         else:
             lhName = lakehouse_name
     else:
-        lakehouses = nb_lakehouse.list(workspaceId = workspace)
+        lakehouses = mssparkutils.lakehouse.list(workspaceId = workspace)
         if lakehouse_id:
             try:
                 lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
@@ -266,7 +265,7 @@ def lakehouse_properties (
             lhName = [lh['displayName'] for lh in lakehouses]
 
     # Get the Lakehouse data
-    data = [nb_lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+    data = [mssparkutils.lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
 
     flattened = [
         {
