@@ -3,19 +3,24 @@
 
 
 
-from pyspark.sql import DataFrame, SparkSession
-from py4j.protocol import Py4JJavaError
-from pyspark.sql import functions as F
-from pyspark.sql import types as T
-from delta.tables import DeltaTable
-import notebookutils
+# Standard library imports
 from pathlib import Path
-import sempy.fabric as fabric
 import re
 import difflib
-from  datetime import datetime
+from datetime import datetime
 import time
 from uuid import uuid4
+
+# Third-party imports
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
+from py4j.protocol import Py4JJavaError
+from delta.tables import DeltaTable
+
+# Local imports
+from   notebookutils import mssparkutils, lakehouse
+import sempy.fabric as fabric
 
 
 APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
@@ -195,8 +200,8 @@ def getLakehouseId (lakehouse_name : str, workspace_id : str = None) -> str:
         # Get the workspace ID
         workspace_id = fabric.get_workspace_id()
 
-    lakehouse = notebookutils.lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
-    return lakehouse.get('id',None)
+    thisLakehouse = lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
+    return thisLakehouse.get('id',None)
 
 
 # ## mountItUp
@@ -208,13 +213,13 @@ def getLakehouseId (lakehouse_name : str, workspace_id : str = None) -> str:
 
 def mountItUp (lh_properties : dict, mountName : str) -> dict:
     mount_name = f'/{mountName}'
-    notebookutils.mssparkutils.fs.mount(lh_properties['abfsPath'], mount_name)
-    mount_points = notebookutils.mssparkutils.fs.mounts()
+    mssparkutils.fs.mount(lh_properties['abfsPath'], mount_name)
+    mount_points = mssparkutils.fs.mounts()
     mp = next((mp for mp in mount_points if mp["mountPoint"] == mount_name))
 
     for k,v in mp.items():
         if k in lh_properties:
-            print (f,v,lh_properties[k])
+            print (k,v,lh_properties[k])
         else:
             lh_properties[k] = v
     if 'localPath' in lh_properties:
@@ -251,7 +256,7 @@ def lakehouse_properties (
         else:
             lhName = lakehouse_name
     else:
-        lakehouses = notebookutils.lakehouse.list(workspaceId = workspace)
+        lakehouses = lakehouse.list(workspaceId = workspace)
         if lakehouse_id:
             try:
                 lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
@@ -262,7 +267,7 @@ def lakehouse_properties (
             lhName = [lh['displayName'] for lh in lakehouses]
 
     # Get the Lakehouse data
-    data = [notebookutils.lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+    data = [lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
 
     flattened = [
         {
