@@ -12,6 +12,7 @@ __all__ : list = [
                   "createExtraRow",
                   "custom_initcap",
                   "dfShape",
+                  "Display",
                   "dropTable",
                   "escapeName",
                   "extract_actual_error",
@@ -57,24 +58,38 @@ from pathlib import Path
 import re
 import difflib
 from datetime import datetime
+import pandas as pd
 import time
 from uuid import uuid4
 
 # Third-party imports
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql import types as T
-from py4j.protocol import Py4JJavaError
-from delta.tables import DeltaTable
+from    delta.tables import DeltaTable
+from    notebookutils import mssparkutils
+from    pyspark.sql import DataFrame, SparkSession
+from    pyspark.sql import functions as F
+from    pyspark.sql import types as T
+from    py4j.protocol import Py4JJavaError
+import  sempy.fabric as fabric
 
 # Local imports
-from   notebookutils import mssparkutils
-import sempy.fabric as fabric
 
 
 APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
 
 spark : SparkSession
+
+def  Display (thing):
+    if isinstance(thing, (pd.DataFrame,DataFrame)):
+        ...
+    elif isinstance(thing, (dict,list)):
+        if isinstance(thing,dict):
+            thing = pd.DataFrame(list(thing.items()), columns=['Key', 'Value'])
+        else:
+            thing = pd.DataFrame(thing)
+    else:
+        print (thing)
+        return
+    display (thing)
 
 def sparkSession (appName : str = None):
     if not appName:
