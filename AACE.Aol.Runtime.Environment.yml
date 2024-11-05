@@ -1,0 +1,7 @@
+name: AACE.Aol.Runtime.Environment
+dependencies: 
+  - pip:
+      - ECU-SBL-AACE-DataLake
+      - semantic-link
+      - semantic-link-labs
+      - delta-spark
