@@ -66,6 +66,7 @@ from uuid import uuid4
 from    delta.tables import DeltaTable
 import  notebookutils
 from    notebookutils import mssparkutils
+from    notebookutils import lakehouse
 from    pyspark.sql import DataFrame, SparkSession
 from    pyspark.sql import functions as F
 from    pyspark.sql import types as T
@@ -214,7 +215,7 @@ def getLakehouseId (lakehouse_name : str, workspace_id : str = None) -> str:
         # Get the workspace ID
         workspace_id = fabric.get_workspace_id()
 
-    thisLakehouse = mssparkutils.lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
+    thisLakehouse = lakehouse.get(name = lakehouse_name, workspaceId = workspace_id)
     return thisLakehouse.get('id',None)
 
 
@@ -270,7 +271,7 @@ def lakehouse_properties (
         else:
             lhName = lakehouse_name
     else:
-        lakehouses = mssparkutils.lakehouse.list(workspaceId = workspace)
+        lakehouses = lakehouse.list(workspaceId = workspace)
         if lakehouse_id:
             try:
                 lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
@@ -281,7 +282,7 @@ def lakehouse_properties (
             lhName = [lh['displayName'] for lh in lakehouses]
 
     # Get the Lakehouse data
-    data = [notebookutils.lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+    data = [lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
 
     flattened = [
         {
