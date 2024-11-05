@@ -64,6 +64,7 @@ from uuid import uuid4
 
 # Third-party imports
 from    delta.tables import DeltaTable
+import  notebookutils
 from    notebookutils import mssparkutils
 from    pyspark.sql import DataFrame, SparkSession
 from    pyspark.sql import functions as F
