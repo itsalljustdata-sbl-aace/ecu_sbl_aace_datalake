@@ -265,7 +265,7 @@ def lakehouse_properties (
             lhName = [lh['displayName'] for lh in lakehouses]
 
     # Get the Lakehouse data
-    data = [mssparkutils.lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+    data = [notebookutils.lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
 
     flattened = [
         {
