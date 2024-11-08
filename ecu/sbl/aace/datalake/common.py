@@ -942,7 +942,7 @@ def insertColumnAndAlias (columns : list[str], valColumn: str, indexColumn : str
 
 
 
-def __findAndDiagramRelationships (theTables : dict):
+def __findAndDiagramRelationships (theTables : dict, **kwargs):
     lakeHouses = [lh for lh in list(set([v['info'].get('lakehouse_name',None) for v in theTables.values()])) if lh]
 
     if len(lakeHouses) > 1:
@@ -991,15 +991,11 @@ def __findAndDiagramRelationships (theTables : dict):
     # verbose : int, default=0
     #    Verbosity. 0 means no verbosity.
 
-    findParms  = dict   (
-                        tables  = forCall,
-                        coverage_threshold = 0.975,
-                        # name_similarity_threshold = 0.6,
-                        # exclude =  None,
-                        # include_many_to_many = False,
-                        # verbose =  5,
-                        )
-    dfRelation = relationships.find_relationships(**findParms)
+    if kwargs:
+        findParms.update({k:v for k,v in kwargs.items() if k in ['coverage_threshold','name_similarity_threshold','exclude','include_many_to_many','verbose']})
+    else:
+        findParms = {}
+    dfRelation = relationships.find_relationships(tables  = forCall, **findParms)
 
     if not dfRelation.empty:
         # display(dfRelation)
@@ -1013,6 +1009,8 @@ def __findAndDiagramRelationships (theTables : dict):
                                                     rankdir = 'LR',
                                                     )
         )
+        if kwargs:
+            plotParms.update({k:v for k,v in kwargs.items() if k in ['include_columns','missing_key_errors','graph_attributes']})
         try:
             # Suppress all stderr output
             sys.stderr = open(os.devnull, 'w')
@@ -1022,6 +1020,7 @@ def __findAndDiagramRelationships (theTables : dict):
         fig.name = lakehouse_name
 
         display (SVG(fig.pipe(format='svg')))
+    return dfRelation
 
-def findAndDiagramRelationships ():
-    __findAndDiagramRelationships (ALL_TABLES)
+def findAndDiagramRelationships (**kwargs):
+    return __findAndDiagramRelationships (ALL_TABLES, **kwargs)
