@@ -17,6 +17,7 @@ __all__ : list = [
                   "escapeName",
                   "extract_actual_error",
                   "firstCharIsNumeric",
+                  "findAndDiagramRelationships",
                   "fixDodgyAssessLevel",
                   "fixDodgyStatuses",
                   "fixDodgyThing",
@@ -49,6 +50,7 @@ __all__ : list = [
                  ]  +   [
                         "spark", 
                         "APPNAME_DEFAULT",
+                        "ALL_TABLES",
                         ]
 
 
@@ -61,6 +63,8 @@ from datetime import datetime
 import pandas as pd
 import time
 from uuid import uuid4
+import sys
+import os
 
 # Third-party imports
 from    delta.tables import DeltaTable
@@ -72,10 +76,20 @@ from    pyspark.sql import functions as F
 from    pyspark.sql import types as T
 from    py4j.protocol import Py4JJavaError
 import  sempy.fabric as fabric
+import sempy.relationships as relationships
+from    collections import OrderedDict
+
+from IPython.utils.io import capture_output
+import graphviz
+import matplotlib.pyplot as plt
+
+from IPython.display import SVG,display,HTML
+
 
 # Local imports
 
 
+ALL_TABLES  = OrderedDict() # OrderedDict so it'll always come out in order of creation
 APPNAME_DEFAULT : str = "ecu.sbl.aace.datalake.common"
 
 spark : SparkSession
@@ -129,11 +143,15 @@ def firstCharIsNumeric(input_string : str) -> bool:
 
 # In[120]:
 def getTempTableName (prefix : str = None) -> str:
-    prefix = str(prefix).rstrip('_')
-    if not prefix:
+    if  (
+            (not isinstance(prefix,str))
+         or len(prefix.rstrip('_')) == 0
+        ):
         prefix = 'tmp'
+    else:
+        prefix = prefix.rstrip('_')
     tabName = cleanString('_'.join([prefix,
-                                    datetime.now().strftime("%Y%m%d_%H%M%S"),
+                                    # datetime.now().strftime("%Y%m%d_%H%M%S"),
                                     str(uuid4()).replace('-','')
                                    ]
                                    )
@@ -255,7 +273,8 @@ def lakehouse_properties (
             lakehouse_name : str  = None,
             lakehouse_id : str  = None,
             workspace : str = None,
-            mountName : str = None
+            mountName : str = None,
+            suppressDisplay: bool  = True
             ) -> dict | list[dict]:
     """
     Sandeep Pawar | fabric.guru
@@ -263,55 +282,61 @@ def lakehouse_properties (
     Default workspace is used if workspace is None.
 
     """
-    workspace = fabric.resolve_workspace_id(workspace) or fabric.get_workspace_id()
+    def __lakehouse_properties():
+        workspace = fabric.resolve_workspace_id(workspace) or fabric.get_workspace_id()
 
-    if lakehouse_name:
-        if isinstance(lakehouse_name,str):
-            lhName = [lakehouse_name,]
+        if lakehouse_name:
+            if isinstance(lakehouse_name,str):
+                lhName = [lakehouse_name,]
+            else:
+                lhName = lakehouse_name
         else:
-            lhName = lakehouse_name
+            lakehouses = lakehouse.list(workspaceId = workspace)
+            if lakehouse_id:
+                try:
+                    lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
+                except IndexError:
+                    raise FileNotFoundError(f"workspace.lakehouse '{workspace}'.'{lakehouse_id}'")
+                lhName = [lh['displayName'],]
+            else:
+                lhName = [lh['displayName'] for lh in lakehouses]
+
+        # Get the Lakehouse data
+        data = [lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+
+        flattened = [
+            {
+            'lakehouse_id': d['id'],
+            'type': d['type'],
+            'lakehouse_name': d['displayName'],
+            'description': d['description'],
+            'workspaceId': d['workspaceId'],
+            'oneLakeTablesPath': d['properties']['oneLakeTablesPath'],
+            'oneLakeFilesPath': d['properties']['oneLakeFilesPath'],
+            'abfsPath': d['properties']['abfsPath'],
+            'sqlep_connectionString': d['properties']['sqlEndpointProperties']['connectionString'],
+            'sqlep_id': d['properties']['sqlEndpointProperties']['id'],
+            'sqlep_provisioningStatus': d['properties']['sqlEndpointProperties']['provisioningStatus']
+        }
+        for d in data]
+
+        if lakehouse_name or lakehouse_id:
+            # we called this for a specific LH
+            if not mountName:
+                return flattened[0]
+            else:
+                return mountItUp(
+                                lh_properties   = flattened[0],
+                                mountName       = mountName
+                                )
+        else:
+            # we called this for all LH in workspace
+            return flattened
+    if  suppressDisplay:
+        with capture_output() as c:
+            return __lakehouse_properties()
     else:
-        lakehouses = lakehouse.list(workspaceId = workspace)
-        if lakehouse_id:
-            try:
-                lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
-            except IndexError:
-                raise FileNotFoundError(f"workspace.lakehouse '{workspace}'.'{lakehouse_id}'")
-            lhName = [lh['displayName'],]
-        else:
-            lhName = [lh['displayName'] for lh in lakehouses]
-
-    # Get the Lakehouse data
-    data = [lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
-
-    flattened = [
-        {
-        'lakehouse_id': d['id'],
-        'type': d['type'],
-        'lakehouse_name': d['displayName'],
-        'description': d['description'],
-        'workspaceId': d['workspaceId'],
-        'oneLakeTablesPath': d['properties']['oneLakeTablesPath'],
-        'oneLakeFilesPath': d['properties']['oneLakeFilesPath'],
-        'abfsPath': d['properties']['abfsPath'],
-        'sqlep_connectionString': d['properties']['sqlEndpointProperties']['connectionString'],
-        'sqlep_id': d['properties']['sqlEndpointProperties']['id'],
-        'sqlep_provisioningStatus': d['properties']['sqlEndpointProperties']['provisioningStatus']
-    }
-    for d in data]
-
-    if lakehouse_name or lakehouse_id:
-        # we called this for a specific LH
-        if not mountName:
-            return flattened[0]
-        else:
-            return mountItUp(
-                            lh_properties   = flattened[0],
-                            mountName       = mountName
-                            )
-    else:
-        # we called this for all LH in workspace
-        return flattened
+        return __lakehouse_properties()
 
 
 # ## getSQL
@@ -454,9 +479,13 @@ def writeTable (lh_properties: dict, tableName : str, df : DataFrame, partitionB
     if partitionBy:
         writer.partitionBy(partitionBy)
     writer.format("delta").mode("overwrite").option("overwriteSchema", "true").save(path)
-    return dict (**dfShape(df),
-                 path = path
-                 )
+    thisTable = dict (lakehouse_name = lh_properties.get('lakehouse_name',None),
+                      **dfShape(df),
+                      path = path
+                    )
+    global ALL_TABLES
+    ALL_TABLES[tableName] = dict(df = df, info = thisTable)
+    return thisTable
 
 
 # ## writeSilverTable
@@ -911,3 +940,88 @@ def insertColumnAndAlias (columns : list[str], valColumn: str, indexColumn : str
     # print ([z for z in zip(cols,aliased)])c
     return aliased
 
+
+
+def __findAndDiagramRelationships (theTables : dict):
+    lakeHouses = [lh for lh in list(set([v['info'].get('lakehouse_name',None) for v in theTables.values()])) if lh]
+
+    if len(lakeHouses) > 1:
+        for ix,lh in enumerate(lakeHouses,1):
+            theseTables = {k:v for k,v in theTables.items() if v['info'].get('lakehouse_name',None) == lh}
+            display(HTML(f"""
+        <div style='font-size:+1;'>
+            <span style='font-weight:light;'>{ix}. </span>
+            <span style='font-style:italic;'>{lh}</span>
+        </div>
+        """))
+            __findAndDiagramRelationships(theseTables)
+        forCall = {'.'.join([v['info'].get('lakehouse_name',None),k]):v['df'] if isinstance(v['df'],pd.DataFrame) else v['df'].toPandas() for k,v in ALL_TABLES.items()}
+        lakehouse_name  = '; '.join(sorted(lakeHouses, key=lambda x: x.lower()))
+        display(HTML(f"""
+        <div style='font-size:+1;'>
+            <span style='font-weight:light;'>Combined</span>
+            <span style='font-style:italic;'>({len(lakeHouses)} lakehouses)</span>
+        </div>
+        """))
+        # print (f'Combined ({len(lakeHouses)} lakehouses)')
+    else:
+        forCall = {k:v['df'] if isinstance(v['df'],pd.DataFrame) else v['df'].toPandas() for k,v in theTables.items()}
+        lakehouse_name  = next(iter(lakeHouses), None)
+
+    # Parameters
+    # ----------
+    # tables : dict[str, pandas.DataFrame] or list[pandas.DataFrame]
+    #     A dictionary that maps table names to the dataframes with table content.
+    #     If a list of dataframes is provided, the function will try to infer the names from the
+    #     session variables and if it cannot, it will use the positional index to describe them in
+    #     the results.
+    # coverage_threshold : float, default=1.0
+    #     A minimum threshold to report a potential relationship. Coverage is a ratio of unique values in the
+    #     "from" column that are found (covered by) the value in the "to" (key) column.
+    # name_similarity_threshold : float, default=0.8
+    #     Minimum similarity of column names before analyzing for relationship.
+    #     The value of 0 means that any 2 columns will be considered.
+    #     The value of 1 means that only column that match exactly will be considered.
+    # exclude : pandas.DataFrame, default=None
+    #     A dataframe with relationships to exclude. Its columns should  contain the columns
+    #     "From Table", "From Column", "To Table", "To Column", which matches the output of
+    #     :func:`~sempy.relationships.find_relationships`.
+    # include_many_to_many : bool, default=True
+    #     Whether to also search for m:m relationships.
+    # verbose : int, default=0
+    #    Verbosity. 0 means no verbosity.
+
+    findParms  = dict   (
+                        tables  = forCall,
+                        coverage_threshold = 0.975,
+                        # name_similarity_threshold = 0.6,
+                        # exclude =  None,
+                        include_many_to_many = False,
+                        verbose =  5,
+                        )
+    dfRelation = relationships.find_relationships(**findParms)
+
+    if not dfRelation.empty:
+        # display(dfRelation)
+        plotParms = dict (
+                            metadata_df         = dfRelation,
+                            tables              = forCall,
+                            include_columns     = 'all',
+                            missing_key_errors  = 'ignore',
+                            graph_attributes    = dict (
+                                                    label = lakehouse_name,
+                                                    rankdir = 'LR',
+                                                    )
+        )
+        try:
+            # Suppress all stderr output
+            sys.stderr = open(os.devnull, 'w')
+            fig = relationships.plot_relationship_metadata(**plotParms)
+        finally:
+            sys.stderr = sys.__stderr__
+        fig.name = lakehouse_name
+
+        display (SVG(fig.pipe(format='svg')))
+
+def findAndDiagramRelationships ():
+    __findAndDiagramRelationships (ALL_TABLES)
