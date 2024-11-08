@@ -996,8 +996,8 @@ def __findAndDiagramRelationships (theTables : dict):
                         coverage_threshold = 0.975,
                         # name_similarity_threshold = 0.6,
                         # exclude =  None,
-                        include_many_to_many = False,
-                        verbose =  5,
+                        # include_many_to_many = False,
+                        # verbose =  5,
                         )
     dfRelation = relationships.find_relationships(**findParms)
 
