@@ -282,8 +282,13 @@ def lakehouse_properties (
     Default workspace is used if workspace is None.
 
     """
-    def __lakehouse_properties():
-        workspace = fabric.resolve_workspace_id(workspace) or fabric.get_workspace_id()
+    def __lakehouse_properties(
+                    lakehouse_name : str  = None,
+                    lakehouse_id : str  = None,
+                    workspace : str = None,
+                    mountName : str = None,
+                    ):
+        workspace_id = fabric.resolve_workspace_id(workspace) or fabric.get_workspace_id()
 
         if lakehouse_name:
             if isinstance(lakehouse_name,str):
@@ -291,7 +296,7 @@ def lakehouse_properties (
             else:
                 lhName = lakehouse_name
         else:
-            lakehouses = lakehouse.list(workspaceId = workspace)
+            lakehouses = lakehouse.list(workspaceId = workspace_id)
             if lakehouse_id:
                 try:
                     lh = [l for l in lakehouses if l['id'] == lakehouse_id][0]
@@ -302,7 +307,7 @@ def lakehouse_properties (
                 lhName = [lh['displayName'] for lh in lakehouses]
 
         # Get the Lakehouse data
-        data = [lakehouse.getWithProperties(name=n, workspaceId=workspace) for n in lhName]
+        data = [lakehouse.getWithProperties(name=n, workspaceId=workspace_id) for n in lhName]
 
         flattened = [
             {
@@ -332,11 +337,17 @@ def lakehouse_properties (
         else:
             # we called this for all LH in workspace
             return flattened
+        
+    kwargs =  dict(lakehouse_name   = lakehouse_name,
+                    lakehouse_id  = lakehouse_id,
+                    workspace  = workspace,
+                    mountName  = mountName,
+    )
     if  suppressDisplay:
-        with capture_output() as c:
-            return __lakehouse_properties()
+        with capture_output() as _:
+            return __lakehouse_properties(**kwargs)
     else:
-        return __lakehouse_properties()
+        return __lakehouse_properties(**kwargs)
 
 
 # ## getSQL
