@@ -410,6 +410,27 @@ def extract_actual_error(py4j_error : Py4JJavaError|str):
 # In[130]:
 
 
+
+def display_exception(e,raiseAgain : bool = False):
+    import traceback
+    from IPython.display import HTML
+    # Format the exception using traceback
+    tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+    
+    # Create HTML content with preformatted text
+    html_content = """
+        <div style='font-size:+4; color: red; font-weight:bold'>
+        Exception<br/>
+        </div>
+    """
+    html_content += f"<pre style='color: red;'>{tb_str}</pre>"
+    # Display the HTML content
+    display(HTML(html_content))
+
+    if raiseAgain:
+      raise e
+
+
 def selectTable(lh_properties: dict, tableName: str, query: str = None):
 
     try:
@@ -422,7 +443,7 @@ def selectTable(lh_properties: dict, tableName: str, query: str = None):
         # Execute the spark
         result_df = spark.sql(query)
     except Py4JJavaError as e:
-        raise Py4JJavaError(extract_actual_error(e))
+        display_exception (e=extract_actual_error(e),raiseAgain=True)
 
 
     return result_df
