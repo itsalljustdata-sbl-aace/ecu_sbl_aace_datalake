@@ -40,6 +40,7 @@ __all__ : list = [
                   "rename_columns_with_prefix",
                   "replaceValueInList",
                   "selectTable",
+                  "selectView",
                   "setDFTextWhenNull",
                   "setNullToZero",
                   "simpleMap",
@@ -386,6 +387,10 @@ def tablePath (lh_properties: dict, tableName: str) -> str:
     tabPath = f"{lh_properties['source']}/Tables/{tableName}"
     return tabPath
 
+def viewPath (lh_properties: dict, viewName: str) -> str:
+    tabPath = f"{lh_properties['source']}/Views/{viewName}"
+    return tabPath
+
 
 # In[129]:
 
@@ -431,11 +436,16 @@ def display_exception(e,raiseAgain : bool = False):
       raise e
 
 
-def selectTable(lh_properties: dict, tableName: str, query: str = None):
+
+def __selectTable(lh_properties: dict, tableName: str, query: str = None, tableOrView: str = 'table'):
 
     try:
         # Register the table as a temporary view
-        df = spark.read.format("delta").load(tablePath(lh_properties,tableName))
+        if tableOrView.lower() == 'view':
+            thePath = viewPath(lh_properties,tableName)
+        else:
+            thePath = tablePath(lh_properties,tableName)
+        df = spark.read.format("delta").load(thePath)
         tableName = getTempTableName(tableName)
         df.createOrReplaceTempView(tableName)
         if not query:
@@ -447,6 +457,14 @@ def selectTable(lh_properties: dict, tableName: str, query: str = None):
 
 
     return result_df
+
+def selectView(lh_properties: dict, viewName: str, query: str = None):
+    return __selectTable(lh_properties = lh_properties, tableName = tableName, query = query, tableOrView = 'view')
+
+
+def selectTable(lh_properties: dict, tableName: str, query: str = None):
+
+    return __selectTable(lh_properties = lh_properties, tableName = tableName, query = query, tableOrView = 'table')
 
 
 # ## readTable
