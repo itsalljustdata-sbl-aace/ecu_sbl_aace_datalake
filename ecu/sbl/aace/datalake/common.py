@@ -459,7 +459,7 @@ def __selectTable(lh_properties: dict, tableName: str, query: str = None, tableO
     return result_df
 
 def selectView(lh_properties: dict, viewName: str, query: str = None):
-    return __selectTable(lh_properties = lh_properties, tableName = tableName, query = query, tableOrView = 'view')
+    return __selectTable(lh_properties = lh_properties, tableName = viewName, query = query, tableOrView = 'view')
 
 
 def selectTable(lh_properties: dict, tableName: str, query: str = None):
